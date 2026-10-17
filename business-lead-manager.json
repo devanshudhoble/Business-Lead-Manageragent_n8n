@@ -1,1 +1,105 @@
-{"name":"Business Lead Manager"}
+{
+  "name": "Business Lead Manager",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1f0c001-0000-4000-8000-000000000001",
+      "name": "Start Manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"leads\": [\n    {\"lead_id\": \"L-1001\", \"customer_name\": \"Priya Sharma\", \"business_email\": \"priya@brightpath-studio.test\", \"company_name\": \"BrightPath Studio\", \"enquiry_type\": \"Website Redesign\", \"estimated_budget\": 2500, \"lead_status\": \"New\", \"follow_up_days\": 1},\n    {\"lead_id\": \"L-1002\", \"customer_name\": \"Rahul Mehta\", \"business_email\": \"rahul@greenleafcafe.test\", \"company_name\": \"GreenLeaf Cafe\", \"enquiry_type\": \"Social Media Management\", \"estimated_budget\": 750, \"lead_status\": \"Contacted\", \"follow_up_days\": 3},\n    {\"lead_id\": \"L-1003\", \"customer_name\": \"Anita Desai\", \"business_email\": \"anita@desaiconsulting.test\", \"company_name\": \"Desai Consulting\", \"enquiry_type\": \"Logo Design\", \"estimated_budget\": 300, \"lead_status\": \"New\", \"follow_up_days\": 7},\n    {\"lead_id\": \"L-1004\", \"customer_name\": \"Karan Patel\", \"business_email\": \"karan@urbanfit.test\", \"company_name\": \"UrbanFit Gym\", \"enquiry_type\": \"Mobile App Development\", \"estimated_budget\": 1000, \"lead_status\": \"Qualified\", \"follow_up_days\": 2},\n    {\"lead_id\": \"L-1005\", \"customer_name\": \"Sneha Iyer\", \"business_email\": \"sneha@petalsflorist.test\", \"company_name\": \"Petals Florist\", \"enquiry_type\": \"SEO Audit\", \"estimated_budget\": 500, \"lead_status\": \"New\", \"follow_up_days\": 5},\n    {\"lead_id\": \"L-1006\", \"customer_name\": \"Vikram Rao\", \"business_email\": \"vikram@raologistics.test\", \"company_name\": \"Rao Logistics\", \"enquiry_type\": \"Email Newsletter Setup\", \"estimated_budget\": 150, \"lead_status\": \"Contacted\", \"follow_up_days\": 14}\n  ]\n}"
+      },
+      "id": "a1f0c001-0000-4000-8000-000000000002",
+      "name": "Sample Business Leads",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [224, 0]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "leads",
+        "include": "noOtherFields"
+      },
+      "id": "a1f0c001-0000-4000-8000-000000000003",
+      "name": "Split Into Individual Leads",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1.1,
+      "position": [448, 0]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "include": "all",
+        "assignments": {
+          "assignments": [
+            {"id": "priority", "name": "priority", "type": "string", "value": "={{ Number($json.estimated_budget) >= 1000 ? 'High' : (Number($json.estimated_budget) >= 500 ? 'Medium' : 'Low') }}"},
+            {"id": "suggested_action", "name": "suggested_action", "type": "string", "value": "={{ Number($json.estimated_budget) >= 1000 ? 'Contact first' : (Number($json.estimated_budget) >= 500 ? 'Schedule a follow-up' : 'Nurture the lead') }}"},
+            {"id": "follow_up_status", "name": "follow_up_status", "type": "string", "value": "={{ Number($json.follow_up_days) <= 1 ? 'Due now' : (Number($json.follow_up_days) <= 3 ? 'Due soon' : 'Scheduled later') }}"},
+            {"id": "follow_up_date", "name": "follow_up_date", "type": "string", "value": "={{ $today.plus({ days: Number($json.follow_up_days) }).toFormat('yyyy-MM-dd') }}"},
+            {"id": "priority_explanation", "name": "priority_explanation", "type": "string", "value": "={{ Number($json.estimated_budget) >= 1000 ? 'Budget of ' + $json.estimated_budget + ' is 1000 or more, so this is a High priority lead.' : (Number($json.estimated_budget) >= 500 ? 'Budget of ' + $json.estimated_budget + ' is between 500 and 999, so this is a Medium priority lead.' : 'Budget of ' + $json.estimated_budget + ' is below 500, so this is a Low priority lead.') }}"}
+          ]
+        }
+      },
+      "id": "a1f0c001-0000-4000-8000-000000000004",
+      "name": "Assign Priority and Next Action",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [672, 0]
+    },
+    {
+      "parameters": {
+        "type": "simple",
+        "sortFieldsUi": {
+          "sortField": [
+            {"fieldName": "estimated_budget", "order": "descending"}
+          ]
+        }
+      },
+      "id": "a1f0c001-0000-4000-8000-000000000005",
+      "name": "Final Lead Report (Sorted by Budget)",
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [896, 0]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {"id": "total_leads", "name": "total_leads", "type": "number", "value": "={{ $input.all().length }}"},
+            {"id": "high_priority_count", "name": "high_priority_count", "type": "number", "value": "={{ $input.all().filter(i => i.json.priority === 'High').length }}"},
+            {"id": "medium_priority_count", "name": "medium_priority_count", "type": "number", "value": "={{ $input.all().filter(i => i.json.priority === 'Medium').length }}"},
+            {"id": "low_priority_count", "name": "low_priority_count", "type": "number", "value": "={{ $input.all().filter(i => i.json.priority === 'Low').length }}"},
+            {"id": "contact_first", "name": "contact_first_leads", "type": "string", "value": "={{ $input.all().filter(i => i.json.priority === 'High').map(i => i.json.customer_name + ' (' + i.json.company_name + ')').join(', ') }}"}
+          ]
+        }
+      },
+      "id": "a1f0c001-0000-4000-8000-000000000006",
+      "name": "Priority Summary",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [1120, 0],
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "Start Manually": {"main": [[{"node": "Sample Business Leads", "type": "main", "index": 0}]]},
+    "Sample Business Leads": {"main": [[{"node": "Split Into Individual Leads", "type": "main", "index": 0}]]},
+    "Split Into Individual Leads": {"main": [[{"node": "Assign Priority and Next Action", "type": "main", "index": 0}]]},
+    "Assign Priority and Next Action": {"main": [[{"node": "Final Lead Report (Sorted by Budget)", "type": "main", "index": 0}]]},
+    "Final Lead Report (Sorted by Budget)": {"main": [[{"node": "Priority Summary", "type": "main", "index": 0}]]}
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
